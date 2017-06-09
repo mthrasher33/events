@@ -13,7 +13,7 @@ router.get('/', function(req, res, next) {
 router.get('/facebook', function(req,res,next){
 	var pages = [230622880690991, 350502711478, 361509650872623];
 	var events = [];
-	var accessToken = 'EAABoVMNCYKQBAHvszxS2sZCsUqwTZBsmFZB2GLo4ZBOy0jazgSvlshRvDvmJGxmZBLNi2ZBfNbBx0KHcDjqZAfRDugdDbGCC5ESrp0N5n6cMBgFx72ldHoyLjulonPvWEqZCf2Jg8oXV1ok80udor0jBOc2Q8vZBprqaTzYDlBYQv0rDTy24bRRwxomYQBygHUXsZD';
+	var accessToken = 'EAABoVMNCYKQBABGW5QU3gGHdl3u8NDN3CE5xbMXBcM0GEMwZAIiQJxLZAFEo1cU247pQBUbEZAE3W6ZCHrWeBkOXEC8z5aVPyZBrueW3aXbDRLxvTLPm7WuKZBYon4XcnYYlpSbrALqso5v0OAqCyQZBsjgBBKZCLsdqoMjPP8gF4tJwmXkgGnRR';
 	var url = 'https://graph.facebook.com/v2.9/99758046345/events?&access_token=' + accessToken;
 	var urlEventAttendee = 'https://graph.facebook.com/v2.9/523295304728036/attending?&access_token=' + accessToken;
 	var urlEventInterested = 'https://graph.facebook.com/v2.9/523295304728036/interested?&access_token=' + accessToken;
@@ -23,84 +23,25 @@ router.get('/facebook', function(req,res,next){
 	//our revolution: 361509650872623
 
 
+function processEventsArray(array, index, callback){
+	console.log('processEventsArray called')
+	getEventAttendees('https://graph.facebook.com/v2.9/'+array[index].id+'/attending?&access_token=' + accessToken, array[index], function(){
+        if(++index === array.length) {
+            callback();
+            return;
+        }
+        processEventsArray(array, index, callback);
+    });
+}
+
 	//kitty hall event: 523295304728036
-	rp(url)
-    	.then(function (response) {
-        
-    	})
-    	.catch(function (err) {
-        console.log(err)
-    	});
+
 	 
-	//  getPageEventData(url, function(){
-  //    		//res.send(events)
-  //    		//res.send(events.toString().replace(/,/g, ''))
-  // 			console.log('Number of events returned: ' + events.length);
-  // 			async.each(events, getEventAttendees, function(err, results){
-  // 				console.log('got all the events')
-  // 				res.send(events)
-  // 			});
-
-  // 			//getPageEventData(events, function(){
-  // 			//	console.log('all done with events')
-  // 			//})
-  // 			//events.forEach(function(event){
-  // 			//	console.log(event.name)
-  // 			//	getEventAttendees('https://graph.facebook.com/v2.9/'+event.id+'/attending?&access_token=' + accessToken, event, function(){
-  // 			//		console.log('All done getting event attendees')
-  // 			//	});
-  // 			//})
-
-  		// 	async.eachSeries(events, getEventAttendees('https://graph.facebook.com/v2.9/' + event + '/attending?&access_token=' + accessToken, function(){
-			 // console.log('got all the attendees for: ' + event.name)
-			 //   				event.attendees = attendees;
-
-		  //  				console.log('Number of attendees for ' + event.name +': ' + attendees.length)
-			 //   				attendees = [];  			
-			 //   	}), function done(err){console.log('done')});
-
-
-  	// 	async.eachSeries(events, getEventAttendees('https://graph.facebook.com/v2.9/' + event.id + '/attending?&access_token=' + accessToken, function(){
-			// console.log('got all the attendees for: ' + event.name)
-			//   				event.attendees = attendees;
-
-			//   				console.log('Number of attendees for ' + event.name +': ' + attendees.length)
-			//   				attendees = [];
-  	// 	}), function (err){
-  	// 		if(err){
-  	// 			console.log('There was an async error')
-  	// 		} else {
-  	// 					res.send(events)
-
-  	// 		}
-  	// 	});
-
-  		 // events.forEach(function(event){
-  		 // 	getEventAttendees('https://graph.facebook.com/v2.9/' + event.id + '/attending?&access_token=' + accessToken, function(){
-  		 // 		console.log('got all the attendees for: ' + event.name)
-  		 // 		event.attendees = attendees;
-
-  		 // 		console.log('Number of attendees for ' + event.name +': ' + attendees.length)
-  		 // 		attendees = [];
-  		 // 	})
-  		 // })
-
-  		 // setTimeout(function(){res.send(events)}, 5000)
-
-		//res.send(events)
-
-	 	 // getEventAttendees(urlEventAttendee, function(){
-	 	 // 	getEventInterested(urlEventInterested, function(){
-		 	//  	res.send(attendees)
-		 	//  	console.log('Number of attendees for kitty hall: ' + attendees.length);
-		 	//  	console.log('Number of interested for kitty hall: ' + interested.length);
-		 	//  	console.log('Number of events: ' + events.length);
-		 	//  	attendees = [];
-	 	 // 	})
-	 	 // })
-
-
-//   	});
+  	getPageEventData(url, function(){
+  		//console.log('all done')
+  		//res.send(events)
+  		processEventsArray(events, 0, function(){console.log('done'); res.send(events)})
+   	});
 
 
 
@@ -118,6 +59,8 @@ function getPageEventData(url, callback) {
 
  			for(var key in resJSON.data){
  				events.push(resJSON.data[key])
+ 				events[key].attendees = [];
+ 				events[key].interested = [];
  			}
 
 			if (next) { // if set, this is the next URL to query
@@ -135,12 +78,12 @@ function getPageEventData(url, callback) {
 
 //have to call this with a url!
 var attendees = [];
-function getEventAttendees(url, callback){
+function getEventAttendees(url, event, callback){
 	//var url= 'https://graph.facebook.com/v2.9/'++'/attending?&access_token=' + accessToken;
 	//console.log(url);
 	request(url, function (error, response, body) {
 		if(!error && response.statusCode ==200){
-			 	
+	 	
 			var resJSON = JSON.parse(body)
  			var next = resJSON.paging ? resJSON.paging.next : ''
 
@@ -148,11 +91,11 @@ function getEventAttendees(url, callback){
  			//event.attendees = resJSON.data
 
  			for(var key in resJSON.data){
- 				attendees.push(resJSON.data[key])
+ 				if(event.attendees){event.attendees.push(resJSON.data[key])}
  			}
 
 			if (next) { // if set, this is the next URL to query
-             	getEventAttendees(next, callback);
+             	getEventAttendees(next, event, callback);
            		
            	} else {
               	callback(); //Call when we are finished
