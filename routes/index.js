@@ -23,14 +23,25 @@ router.get('/facebook', function(req,res,next){
 	//our revolution: 361509650872623
 
 
-function processEventsArray(array, index, callback){
+function processEventAttendees(array, index, callback){
 	console.log('processEventsArray called')
 	getEventAttendees('https://graph.facebook.com/v2.9/'+array[index].id+'/attending?&access_token=' + accessToken, array[index], function(){
         if(++index === array.length) {
             callback();
             return;
         }
-        processEventsArray(array, index, callback);
+        processEventAttendees(array, index, callback);
+    });
+}
+
+function processEventInterested(array, index, callback){
+	console.log('processEventInterested called')
+	getEventInterested('https://graph.facebook.com/v2.9/'+array[index].id+'/interested?&access_token=' + accessToken, array[index], function(){
+        if(++index === array.length) {
+            callback();
+            return;
+        }
+        processEventInterested(array, index, callback);
     });
 }
 
@@ -38,9 +49,7 @@ function processEventsArray(array, index, callback){
 
 	 
   	getPageEventData(url, function(){
-  		//console.log('all done')
-  		//res.send(events)
-  		processEventsArray(events, 0, function(){console.log('done'); res.send(events)})
+  		processEventAttendees(events, 0, function(){processEventInterested(events,0,function(){console.log('done'); res.send(events);})})//function(){console.log('done'); res.send(events)})
    	});
 
 
@@ -79,16 +88,11 @@ function getPageEventData(url, callback) {
 //have to call this with a url!
 var attendees = [];
 function getEventAttendees(url, event, callback){
-	//var url= 'https://graph.facebook.com/v2.9/'++'/attending?&access_token=' + accessToken;
-	//console.log(url);
 	request(url, function (error, response, body) {
 		if(!error && response.statusCode ==200){
 	 	
 			var resJSON = JSON.parse(body)
  			var next = resJSON.paging ? resJSON.paging.next : ''
-
- 			//events.push(resJSON.data)
- 			//event.attendees = resJSON.data
 
  			for(var key in resJSON.data){
  				if(event.attendees){event.attendees.push(resJSON.data[key])}
@@ -109,7 +113,7 @@ function getEventAttendees(url, event, callback){
 }
 
 var interested = [];
-function getEventInterested(url, callback){
+function getEventInterested(url, event, callback){
 	request(url, function (error, response, body) {
 		if(!error && response.statusCode ==200){
 			 	
@@ -117,11 +121,11 @@ function getEventInterested(url, callback){
  			var next = resJSON.paging.next
 
  			for(var key in resJSON.data){
- 				interested.push(resJSON.data[key])
+ 				if(event.interested){event.interested.push(resJSON.data[key])}
  			}
 
 			if (next) { // if set, this is the next URL to query
-             	getEventInterested(next, callback);
+             	getEventInterested(next, event, callback);
            		
            	} else {
               	callback(); //Call when we are finished
@@ -132,96 +136,6 @@ function getEventInterested(url, callback){
 
 	});
 }
-
-
-
-
-
-
-// 	function nextPage(next, callback){
-// 		console.log(next)
-// 					if (next) { // if set, this is the next URL to query
-//             	  		getPageEventData(next, callback);
-           		
-//            		 	} else {
-//              	   callback(); //Call when we are finished
-//             	}
-// 	}
-
-// 	function getEventAttendees(events, nextPage, next, callback, index){
-// 		console.log('getting attendees for: ' + events[index].name)
-// 		var url = events[index].attendeeURL;
-// 		//console.log(events.length)
-// 		request(url, function(error, response, body){
-// 			if(!error && response.statusCode == 200){
-// 				var resJSON = JSON.parse(body)
-// 				events[index].attendees = resJSON.data
-// 				events[index].nextAttendeeURL = resJSON.paging ? resJSON.paging.next : ''
-
-// 				if(index + 1 === events.length){
-// 					if(events[index].nextAttendeeURL){ //we have done one page of attendees and need to get more attendees for the event
-// 						getEventAttendees(events, nextPage, next, callback, index)
-// 						console.log('time to get the next page of attendees')
-// 					} else {
-// 						nextPage(next, callback); //we have gotten all our pages of attendees for this event and need to move on
-// 					}
-
-// 				} else {//get more attendees for events on this page
-// 					getEventAttendees(events, nextPage, next, callback, index + 1)
-// 					console.log(index + 1)
-// 				}
-
-// 			} else {
-// 				console.log('Error getting event attendees: ' + error)
-// 			}
-// 		})
-		
-// 		//nextPage(next, callback);
-// 	}
-
-// 	function getPageEventData(url, callback){
-// 		request(url, function (error, response, body) {
-// 			if(!error && response.statusCode ==200){
-// 				events = []; //have to empty the events array out
-// 				var resJSON = JSON.parse(body)
-// 				var next = resJSON.paging.next
-// 				//console.log(resJSON);
-
-
-
-// 				//Get one event from the page
-// 				for(var key in resJSON.data){
-// 					var event = new Object();
-// 					event.name = resJSON.data[key].name
-// 					event.id = resJSON.data[key].id
-// 					event.start_time = resJSON.data[key].start_time
-// 					event.end_time = resJSON.data[key].end_time
-// 					event.place = resJSON.data[key].place
-// 					event.attendeeURL = 'https://graph.facebook.com/v2.9/' + event.id + '/attending?&access_token=' + accessToken;
-
-
-// 					events.push(event)
-// 				}
-
-// 				//console.log(next)
-
-// 				//Then go get all the attendees for all the events
-// 				getEventAttendees(events,nextPage, next, callback, 0)
-
-// 			} else {
-// 				console.log('Error with Facebook API Call: ' + error);
-// 			}
-// 		});
-// 	}
-
-// 	//the function that calls all the events for a page
-// 	getPageEventData(url, function () {
-//    		res.send(events)
-//    		//res.send(events.toString().replace(/,/g, ''))
-// 		console.log('We are done');
-// 	});
-// })
-
 })
 
 
